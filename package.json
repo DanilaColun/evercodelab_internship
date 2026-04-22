@@ -4,7 +4,8 @@
   "description": "Evercodelab admission task for internship for Node.js backend",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "node index.js",
+    "scheduler": "node scheduler.js"
   },
   "author": "Colun Danila",
   "license": "ISC"

@@ -1,13 +1,11 @@
 {
   "name": "evercodelab_internship",
   "version": "1.0.0",
-  "description": "",
+  "description": "Evercodelab admission task for internship for Node.js backend",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node index.js"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "type": "commonjs"
+  "author": "Colun Danila",
+  "license": "ISC"
 }

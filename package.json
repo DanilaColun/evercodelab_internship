@@ -2,10 +2,10 @@
   "name": "evercodelab_internship",
   "version": "1.0.0",
   "description": "Evercodelab admission task for internship for Node.js backend",
-  "main": "index.js",
+  "main": "src/index.js",
   "scripts": {
-    "start": "node index.js",
-    "scheduler": "node scheduler.js"
+    "start": "node src/index.js",
+    "scheduler": "node src/scheduler.js"
   },
   "author": "Colun Danila",
   "license": "ISC"

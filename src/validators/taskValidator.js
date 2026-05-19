@@ -1,14 +1,31 @@
+const ValidationError = require("../errors/ValidationError");
+
 function validateTaskOptions(name, interval, task) {
   if (typeof name !== "string" || name.trim() === "") {
-    throw new Error("task name  needed");
+    throw new ValidationError("task name  needed", {
+      context: {
+        field: "name",
+        value: name
+      }
+    });
   }
 
   if (typeof interval !== "number" || interval <= 0) {
-    throw new Error("task interval needs to be bigger than 0");
+    throw new ValidationError("task interval needs to be bigger than 0", {
+      context: {
+        field: "interval",
+        value: interval
+      }
+    });
   }
 
   if (typeof task !== "function") {
-    throw new Error("task callback needs to be a function");
+    throw new ValidationError("task callback needs to be a function", {
+      context: {
+        field: "task",
+        valueType: typeof task
+      }
+    });
   }
 }
 

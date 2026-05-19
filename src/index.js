@@ -1,6 +1,6 @@
-const config = require("./config");
-const createLogger = require("./logger");
+const appConfig = require("./config/appConfig");
+const Logger = require("./logger/Logger");
 
-const log = createLogger(config.appName);
+const logger = new Logger(appConfig.appName);
 
-log("app started");
+logger.log("app started");

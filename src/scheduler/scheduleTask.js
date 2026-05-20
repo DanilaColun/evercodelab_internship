@@ -10,10 +10,13 @@ function scheduleTask(name, interval, task, options = {}) {
     try {
       await task();
     } catch (error) {
+      const originalErrorMessage =
+        error instanceof Error ? error.message : String(error);
+
       const schedulerError = new SchedulerError("Scheduled task failed", {
         context: {
           taskName: name,
-          originalErrorMessage: error.message
+          originalErrorMessage
         }
       });
 

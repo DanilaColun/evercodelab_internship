@@ -1,5 +1,5 @@
-const validateTaskOptions = require("../src/validators/taskValidator");
-const ValidationError = require("../src/errors/ValidationError");
+const validateTaskOptions = require("../../src/validators/taskValidator");
+const ValidationError = require("../../src/errors/ValidationError");
 
 describe("task validator", () => {
   test("valid task works fine", () => {
@@ -28,6 +28,36 @@ describe("task validator", () => {
 
     try {
       validateTaskOptions("background task", 0, function () {});
+    } catch (caughtError) {
+      error = caughtError;
+    }
+
+    expect(error).toBeInstanceOf(ValidationError);
+    expect(error.name).toBe("ValidationError");
+    expect(error.statusCode).toBe(400);
+    expect(error.context.field).toBe("interval");
+  });
+
+  test("throws validation error when interval is NaN", () => {
+    let error;
+
+    try {
+      validateTaskOptions("background task", NaN, function () {});
+    } catch (caughtError) {
+      error = caughtError;
+    }
+
+    expect(error).toBeInstanceOf(ValidationError);
+    expect(error.name).toBe("ValidationError");
+    expect(error.statusCode).toBe(400);
+    expect(error.context.field).toBe("interval");
+  });
+
+  test("throws validation error when interval is Infinity", () => {
+    let error;
+
+    try {
+      validateTaskOptions("background task", Infinity, function () {});
     } catch (caughtError) {
       error = caughtError;
     }

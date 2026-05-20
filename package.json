@@ -5,8 +5,13 @@
   "main": "src/index.js",
   "scripts": {
     "start": "node src/index.js",
-    "scheduler": "node src/scheduler.js"
+    "scheduler": "node src/scheduler.js",
+    "test": "jest",
+    "test:coverage": "jest --coverage"
   },
   "author": "Colun Danila",
-  "license": "ISC"
+  "license": "ISC",
+  "devDependencies": {
+    "jest": "^30.4.2"
+  }
 }

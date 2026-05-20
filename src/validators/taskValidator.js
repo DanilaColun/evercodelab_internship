@@ -2,7 +2,7 @@ const ValidationError = require("../errors/ValidationError");
 
 function validateTaskOptions(name, interval, task) {
   if (typeof name !== "string" || name.trim() === "") {
-    throw new ValidationError("task name  needed", {
+    throw new ValidationError("task name needed", {
       context: {
         field: "name",
         value: name
@@ -10,7 +10,11 @@ function validateTaskOptions(name, interval, task) {
     });
   }
 
-  if (typeof interval !== "number" || interval <= 0) {
+  if (
+    typeof interval !== "number" ||
+    !Number.isFinite(interval) ||
+    interval <= 0
+  ) {
     throw new ValidationError("task interval needs to be bigger than 0", {
       context: {
         field: "interval",

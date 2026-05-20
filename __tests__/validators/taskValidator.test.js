@@ -38,6 +38,36 @@ describe("task validator", () => {
     expect(error.context.field).toBe("interval");
   });
 
+  test("throws validation error when interval is NaN", () => {
+    let error;
+
+    try {
+      validateTaskOptions("background task", NaN, function () {});
+    } catch (caughtError) {
+      error = caughtError;
+    }
+
+    expect(error).toBeInstanceOf(ValidationError);
+    expect(error.name).toBe("ValidationError");
+    expect(error.statusCode).toBe(400);
+    expect(error.context.field).toBe("interval");
+  });
+
+  test("throws validation error when interval is Infinity", () => {
+    let error;
+
+    try {
+      validateTaskOptions("background task", Infinity, function () {});
+    } catch (caughtError) {
+      error = caughtError;
+    }
+
+    expect(error).toBeInstanceOf(ValidationError);
+    expect(error.name).toBe("ValidationError");
+    expect(error.statusCode).toBe(400);
+    expect(error.context.field).toBe("interval");
+  });
+
   test("throws validation error when task callback is wrong", () => {
     let error;
 

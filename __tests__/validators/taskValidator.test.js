@@ -1,5 +1,5 @@
-const validateTaskOptions = require("../src/validators/taskValidator");
-const ValidationError = require("../src/errors/ValidationError");
+const validateTaskOptions = require("../../src/validators/taskValidator");
+const ValidationError = require("../../src/errors/ValidationError");
 
 describe("task validator", () => {
   test("valid task works fine", () => {

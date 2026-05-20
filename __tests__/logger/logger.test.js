@@ -1,6 +1,6 @@
-const appConfig = require("../src/config/appConfig");
-const Logger = require("../src/logger/Logger");
-const ConfigError = require("../src/errors/ConfigError");
+const appConfig = require("../../src/config/appConfig");
+const Logger = require("../../src/logger/logger");
+const ConfigError = require("../../src/errors/ConfigError");
 
 describe("logger", () => {
   afterEach(() => {

@@ -1,7 +1,7 @@
-const AppError = require("../src/errors/AppError");
-const ValidationError = require("../src/errors/ValidationError");
-const ConfigError = require("../src/errors/ConfigError");
-const SchedulerError = require("../src/errors/SchedulerError");
+const AppError = require("../../src/errors/AppError");
+const ValidationError = require("../../src/errors/ValidationError");
+const ConfigError = require("../../src/errors/ConfigError");
+const SchedulerError = require("../../src/errors/SchedulerError");
 
 describe("custom errors", () => {
   test("app error saves useful error info", () => {

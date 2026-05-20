@@ -2,6 +2,8 @@ const appConfig = require("./config/appConfig");
 const Logger = require("./logger/Logger");
 const startScheduler = require("./scheduler/startScheduler");
 
-const logger = new Logger(appConfig.appName);
+const logger = new Logger(appConfig.appName, {
+  level: appConfig.logLevel
+});
 
 startScheduler({ logger });

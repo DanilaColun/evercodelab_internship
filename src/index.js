@@ -1,6 +1,8 @@
 const appConfig = require("./config/appConfig");
 const Logger = require("./logger/Logger");
 
-const logger = new Logger(appConfig.appName);
+const logger = new Logger(appConfig.appName, {
+  level: appConfig.logLevel
+});
 
-logger.log("app started");
+logger.info("app started");

@@ -4,7 +4,11 @@ const scheduleTask = require("./scheduleTask");
 function startScheduler(dependencies = {}) {
   const logger = dependencies.logger;
 
-  if (!logger || typeof logger.log !== "function") {
+  if (
+    !logger ||
+    typeof logger.info !== "function" ||
+    typeof logger.error !== "function"
+  ) {
     throw new SchedulerError("Logger dependency is needed", {
       context: {
         dependency: "logger"
@@ -12,17 +16,19 @@ function startScheduler(dependencies = {}) {
     });
   }
 
-  logger.log("scheduler started");
+  const requestId = "scheduler-task";
+
+  logger.info("scheduler started", { requestId });
 
   return scheduleTask(
     "background task",
     10000,
     async function () {
-      logger.log("background task done");
+      logger.info("background task done", { requestId });
     },
     {
       onError(error) {
-        logger.log(`${error.name}: ${error.message}`);
+        logger.error(`${error.name}: ${error.message}`, { requestId });
       }
     }
   );

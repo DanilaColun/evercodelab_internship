@@ -20,7 +20,7 @@
 
 Хранит настройки приложения такие как название, окружение, версию, уровень логирования.
 
-### `src/logger/Logger.js`
+### `src/logger/logger.js`
 
 Содержит класс `Logger` для форматированного вывода сообщений в консоль и который поддерживает уровни логирования `error`, `warn`, `info`, `debug`, `trace`, `requestId`.
 
@@ -118,7 +118,8 @@ npm run test:coverage
 ```text
 ошибок
 taskValidator
-Logger
+logger
+scheduler
 ```
 
 ## Скрипты

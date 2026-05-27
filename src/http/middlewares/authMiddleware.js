@@ -1,3 +1,5 @@
+const ForbiddenError = require("../../errors/ForbiddenError");
+
 function extractBearerToken(authorizationHeader) {
   if (!authorizationHeader) {
     return null;
@@ -19,9 +21,14 @@ function createAuthMiddleware(dependencies = {}) {
     const token = extractBearerToken(req.headers.authorization);
 
     if (!apiToken || token !== apiToken) {
-      return res.status(403).json({
-        error: "Forbidden",
-      });
+      return next(
+        new ForbiddenError("Forbidden", {
+          requestId: req.requestId,
+          context: {
+            path: req.originalUrl
+          }
+        })
+      );
     }
 
     return next();

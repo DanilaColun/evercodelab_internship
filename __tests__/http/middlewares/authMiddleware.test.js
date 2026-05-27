@@ -1,6 +1,7 @@
 const express = require("express");
 const request = require("supertest");
 const createAuthMiddleware = require("../../../src/http/middlewares/authMiddleware");
+const createErrorMiddleware = require("../../../src/http/middlewares/errorMiddleware");
 
 const validToken = "a9f4c2d8e13b7a0c91f6e84d22b0c5713e69f10ab8d4567c3f92a4410dc88b5e";
 
@@ -10,14 +11,16 @@ function createTestApp() {
   app.get(
     "/protected",
     createAuthMiddleware({
-      apiToken: validToken,
+      apiToken: validToken
     }),
     (req, res) => {
       res.status(200).json({
-        message: "ok",
+        message: "ok"
       });
     }
   );
+
+  app.use(createErrorMiddleware());
 
   return app;
 }
@@ -30,7 +33,7 @@ describe("authMiddleware", () => {
       .get("/protected")
       .expect(403)
       .expect({
-        error: "Forbidden",
+        error: "Forbidden"
       });
   });
 
@@ -42,7 +45,7 @@ describe("authMiddleware", () => {
       .set("Authorization", `Basic ${validToken}`)
       .expect(403)
       .expect({
-        error: "Forbidden",
+        error: "Forbidden"
       });
   });
 
@@ -54,7 +57,7 @@ describe("authMiddleware", () => {
       .set("Authorization", "Bearer wrongtoken")
       .expect(403)
       .expect({
-        error: "Forbidden",
+        error: "Forbidden"
       });
   });
 
@@ -66,7 +69,7 @@ describe("authMiddleware", () => {
       .set("Authorization", `Bearer ${validToken}`)
       .expect(200)
       .expect({
-        message: "ok",
+        message: "ok"
       });
   });
 });

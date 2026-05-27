@@ -2,6 +2,9 @@ const AppError = require("../../src/errors/AppError");
 const ValidationError = require("../../src/errors/ValidationError");
 const ConfigError = require("../../src/errors/ConfigError");
 const SchedulerError = require("../../src/errors/SchedulerError");
+const ForbiddenError = require("../../src/errors/ForbiddenError");
+const NotFoundError = require("../../src/errors/NotFoundError");
+const ConflictError = require("../../src/errors/ConflictError");
 
 describe("custom errors", () => {
   test("app error saves useful error info", () => {
@@ -32,6 +35,7 @@ describe("custom errors", () => {
     });
 
     expect(error).toBeInstanceOf(AppError);
+    expect(error).toBeInstanceOf(Error);
     expect(error.name).toBe("ValidationError");
     expect(error.message).toBe("task name needed");
     expect(error.statusCode).toBe(400);
@@ -47,6 +51,7 @@ describe("custom errors", () => {
     });
 
     expect(error).toBeInstanceOf(AppError);
+    expect(error).toBeInstanceOf(Error);
     expect(error.name).toBe("ConfigError");
     expect(error.message).toBe("app name needed");
     expect(error.statusCode).toBe(500);
@@ -62,10 +67,61 @@ describe("custom errors", () => {
     });
 
     expect(error).toBeInstanceOf(AppError);
+    expect(error).toBeInstanceOf(Error);
     expect(error.name).toBe("SchedulerError");
     expect(error.message).toBe("scheduler crashed");
     expect(error.statusCode).toBe(500);
     expect(error.context.taskName).toBe("background task");
+    expect(typeof error.timestamp).toBe("string");
+  });
+
+  test("forbidden error is used for closed API", () => {
+    const error = new ForbiddenError("Forbidden", {
+      requestId: "req-1",
+      context: {
+        path: "/api/currencies"
+      }
+    });
+
+    expect(error).toBeInstanceOf(AppError);
+    expect(error).toBeInstanceOf(Error);
+    expect(error.name).toBe("ForbiddenError");
+    expect(error.message).toBe("Forbidden");
+    expect(error.statusCode).toBe(403);
+    expect(error.requestId).toBe("req-1");
+    expect(error.context.path).toBe("/api/currencies");
+    expect(typeof error.timestamp).toBe("string");
+  });
+
+  test("not found error is used for missing data", () => {
+    const error = new NotFoundError("Currency not found", {
+      context: {
+        ticker: "BTC"
+      }
+    });
+
+    expect(error).toBeInstanceOf(AppError);
+    expect(error).toBeInstanceOf(Error);
+    expect(error.name).toBe("NotFoundError");
+    expect(error.message).toBe("Currency not found");
+    expect(error.statusCode).toBe(404);
+    expect(error.context.ticker).toBe("BTC");
+    expect(typeof error.timestamp).toBe("string");
+  });
+
+  test("conflict error is used for duplicate data", () => {
+    const error = new ConflictError("Currency already exists", {
+      context: {
+        ticker: "BTC"
+      }
+    });
+
+    expect(error).toBeInstanceOf(AppError);
+    expect(error).toBeInstanceOf(Error);
+    expect(error.name).toBe("ConflictError");
+    expect(error.message).toBe("Currency already exists");
+    expect(error.statusCode).toBe(409);
+    expect(error.context.ticker).toBe("BTC");
     expect(typeof error.timestamp).toBe("string");
   });
 });

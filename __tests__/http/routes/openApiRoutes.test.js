@@ -14,6 +14,10 @@ describe("openApiRoutes", () => {
     expect(response.body.paths["/openapi.json"]).toBeDefined();
     expect(response.body.paths["/api/currencies"]).toBeDefined();
     expect(response.body.paths["/api/currencies/{ticker}"]).toBeDefined();
+    expect(response.body.paths["/price"]).toBeDefined();
+    expect(response.body.components.schemas.Price).toBeDefined();
+    expect(response.body.components.schemas.PriceResponse).toBeDefined();
+    expect(response.body.components.responses.ExternalApiError).toBeDefined();
 
     expect(response.body.components.schemas.Currency).toBeDefined();
     expect(response.body.components.securitySchemes.bearerAuth).toBeDefined();

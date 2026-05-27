@@ -36,7 +36,14 @@ const openApiSpec = {
         security: [],
         responses: {
           200: {
-            description: "OpenAPI file."
+            description: "OpenAPI file.",
+            content: {
+              "application/json": {
+                schema: {
+                  type: "object"
+                }
+              }
+            }
           }
         }
       }
@@ -81,6 +88,10 @@ const openApiSpec = {
             "application/json": {
               schema: {
                 $ref: "#/components/schemas/Currency"
+              },
+              example: {
+                name: "Bitcoin",
+                ticker: "BTC"
               }
             }
           }
@@ -92,6 +103,10 @@ const openApiSpec = {
               "application/json": {
                 schema: {
                   $ref: "#/components/schemas/Currency"
+                },
+                example: {
+                  name: "Bitcoin",
+                  ticker: "BTC"
                 }
               }
             }
@@ -134,6 +149,10 @@ const openApiSpec = {
               "application/json": {
                 schema: {
                   $ref: "#/components/schemas/Currency"
+                },
+                example: {
+                  name: "Bitcoin",
+                  ticker: "BTC"
                 }
               }
             }
@@ -170,6 +189,10 @@ const openApiSpec = {
             "application/json": {
               schema: {
                 $ref: "#/components/schemas/Currency"
+              },
+              example: {
+                name: "Bitcoin new",
+                ticker: "BTC"
               }
             }
           }
@@ -181,6 +204,10 @@ const openApiSpec = {
               "application/json": {
                 schema: {
                   $ref: "#/components/schemas/Currency"
+                },
+                example: {
+                  name: "Bitcoin new",
+                  ticker: "BTC"
                 }
               }
             }
@@ -226,6 +253,64 @@ const openApiSpec = {
           }
         }
       }
+    },
+    "/price": {
+      get: {
+        summary: "Get prices by currency",
+        security: [
+          {
+            bearerAuth: []
+          }
+        ],
+        parameters: [
+          {
+            name: "currency",
+            in: "query",
+            required: true,
+            schema: {
+              type: "string",
+              example: "BTC"
+            }
+          }
+        ],
+        responses: {
+          200: {
+            description: "Price list.",
+            content: {
+              "application/json": {
+                schema: {
+                  $ref: "#/components/schemas/PriceResponse"
+                },
+                example: {
+                  currency: "BTC",
+                  prices: [
+                    {
+                      symbol: "BTCUSDT",
+                      price: "68000.00000000"
+                    },
+                    {
+                      symbol: "ETHBTC",
+                      price: "0.05200000"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          400: {
+            $ref: "#/components/responses/BadRequest"
+          },
+          403: {
+            $ref: "#/components/responses/Forbidden"
+          },
+          404: {
+            $ref: "#/components/responses/NotFound"
+          },
+          502: {
+            $ref: "#/components/responses/ExternalApiError"
+          }
+        }
+      }
     }
   },
   components: {
@@ -247,6 +332,36 @@ const openApiSpec = {
           ticker: {
             type: "string",
             example: "BTC"
+          }
+        }
+      },
+      Price: {
+        type: "object",
+        required: ["symbol", "price"],
+        properties: {
+          symbol: {
+            type: "string",
+            example: "BTCUSDT"
+          },
+          price: {
+            type: "string",
+            example: "68000.00000000"
+          }
+        }
+      },
+      PriceResponse: {
+        type: "object",
+        required: ["currency", "prices"],
+        properties: {
+          currency: {
+            type: "string",
+            example: "BTC"
+          },
+          prices: {
+            type: "array",
+            items: {
+              $ref: "#/components/schemas/Price"
+            }
           }
         }
       },
@@ -300,6 +415,22 @@ const openApiSpec = {
                   $ref: "#/components/schemas/ValidationErrorResponse"
                 }
               ]
+            },
+            examples: {
+              invalidCurrencyData: {
+                value: {
+                  error: "Invalid currency data",
+                  requestId: "requestId",
+                  details: ["Name is required", "Ticker is required"]
+                }
+              },
+              missingCurrencyQuery: {
+                value: {
+                  error: "Currency is required",
+                  requestId: "requestId",
+                  details: ["Currency is required"]
+                }
+              }
             }
           }
         }
@@ -310,26 +441,52 @@ const openApiSpec = {
           "application/json": {
             schema: {
               $ref: "#/components/schemas/ErrorResponse"
+            },
+            example: {
+              error: "Forbidden",
+              requestId: "requestId"
             }
           }
         }
       },
       NotFound: {
-        description: "Currency not found.",
+        description: "Data not found.",
         content: {
           "application/json": {
             schema: {
               $ref: "#/components/schemas/ErrorResponse"
+            },
+            example: {
+              error: "Currency not found",
+              requestId: "requestId"
             }
           }
         }
       },
       Conflict: {
-        description: "Currency already exists.",
+        description: "Data already exists.",
         content: {
           "application/json": {
             schema: {
               $ref: "#/components/schemas/ErrorResponse"
+            },
+            example: {
+              error: "Currency already exists",
+              requestId: "requestId"
+            }
+          }
+        }
+      },
+      ExternalApiError: {
+        description: "External API error.",
+        content: {
+          "application/json": {
+            schema: {
+              $ref: "#/components/schemas/ErrorResponse"
+            },
+            example: {
+              error: "Binance is not available",
+              requestId: "requestId"
             }
           }
         }

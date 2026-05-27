@@ -6,6 +6,7 @@ const createErrorMiddleware = require("./middlewares/errorMiddleware");
 const createRequestIdMiddleware = require("./middlewares/requestIdMiddleware");
 const createRequestLoggerMiddleware = require("./middlewares/requestLoggerMiddleware");
 const createCurrencyRoutes = require("./routes/currencyRoutes");
+const createOpenApiRoutes = require("./routes/openApiRoutes");
 const createStatusRoutes = require("./routes/statusRoutes");
 
 function createApp(dependencies = {}) {
@@ -22,11 +23,12 @@ function createApp(dependencies = {}) {
       apiToken
     });
 
-  app.use(express.json());
   app.use(createRequestIdMiddleware());
   app.use(createRequestLoggerMiddleware({ logger: dependencies.logger }));
+  app.use(express.json());
 
   app.use(createStatusRoutes(dependencies));
+  app.use(createOpenApiRoutes());
 
   app.use("/api", authMiddleware);
   app.use("/api/currencies", createCurrencyRoutes({ currencyRepository }));

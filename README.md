@@ -6,60 +6,174 @@
 
 Это проект на Node.js, где реализовано:
 
-1. инициализация Node.js проекта через npm
-2. структура проекта по принципу разделения ответственности
-3. модуль конфигурации приложения
-4. логгер с уровнями логирования
-5. кастомные ошибки для удобной отладки
-6. scheduler для управления периодическими задачами
-7. автотесты на Jest
+1. Express web server
+2. маршрут `/status` для проверки работы сервера
+3. авторизация через Bearer token из `.env`
+4. CRUD API для `currency`
+5. хранение `currency` в памяти приложения (временно)
+6. endpoint `/price` для получения курсов из Binance
+7. retry и timeout при запросе к Binance
+8. OpenAPI описание endpoint
+9. структура проекта по принципу разделения ответственности
+10. модуль конфигурации приложения
+11. логгер с уровнями логирования
+12. кастомные ошибки для удобной отладки
+13. scheduler для управления периодическими задачами (локально)
+14. автотесты на Jest
 
-## Описание файлов
-
-### `src/config/appConfig.js`
-
-Хранит настройки приложения такие как название, окружение, версию, уровень логирования.
-
-### `src/logger/logger.js`
-
-Содержит класс `Logger` для форматированного вывода сообщений в консоль и который поддерживает уровни логирования `error`, `warn`, `info`, `debug`, `trace`, `requestId`.
-
-Пример вывода:
+## Структура проекта
 
 ```text
-[2026-05-20T12:30:20.529Z] [INFO] [Evercodelab Internship] app started
+src/config
+настройки приложения
+
+src/clients
+HTTP клиент для внешних API
+
+src/docs
+OpenAPI спецификации
+
+src/errors
+кастомные ошибки 
+
+src/http/middlewares
+middleware для auth, requestId, requestLogger и ошибок
+
+src/http/routes
+Список Express routes
+
+src/logger
+кастомный logger
+
+src/repositories
+хранение данных в памяти (временно)
+
+src/services
+бизнес логика приложения
+
+src/validators
+валидация входных данных 
 ```
 
-### `src/errors`
+## Основные endpoints
 
-Содержит ошибки приложения:
+```text
+GET    /status
+GET    /openapi.json
 
-1. `AppError`
-2. `ValidationError`
-3. `ConfigError`
-4. `SchedulerError`
+GET    /api/currencies
+POST   /api/currencies
+GET    /api/currencies/:ticker
+PUT    /api/currencies/:ticker
+DELETE /api/currencies/:ticker
 
-Наследуются от стандартного `Error` и содержат доп. поля: `statusCode`, `timestamp`, `requestId`, `context`.
+GET    /price?currency=:ticker
+```
 
-### `src/validators/taskValidator.js`
+## Авторизация
 
-Проверяет параметры задачи перед запуском scheduler, если неправильные то выбрасывается `ValidationError`.
+Все API endpoint защищены Bearer token через auth middleware.
 
-### `src/scheduler/scheduleTask.js`
+Публичные endpoints:
 
-Содержит функцию `scheduleTask(name, interval, task)`. Проверяет параметры задачи и запускает её через `setInterval`.
+```text
+GET /status
+GET /openapi.json
+```
 
-### `src/scheduler/startScheduler.js`
+Защищённые endpoints:
 
-Запускает конкретную периодическую задачу приложения. Logger передаётся в этот модуль через dependencies.
+```text
+/api/currencies
+/price
+```
 
-### `src/index.js`
+Пример заголовка:
 
-Точка входа в приложение.
+```text
+Authorization: Bearer <API_TOKEN>
+```
 
-### `src/scheduler.js`
+`API_TOKEN` хранится в `.env`. Также есть пример токена в .env.example. 
 
-Точка входа для запуска scheduler.
+## Currency API
+
+Сущность `currency` содержит два поля:
+
+```json
+{
+  "name": "Bitcoin",
+  "ticker": "BTC"
+}
+```
+
+Данные хранятся в памяти app временно. 
+После перезапуска сервера список очищается.
+
+## Price API
+
+Endpoint:
+
+```text
+GET /price?currency=:ticker
+```
+
+Пример ответа:
+
+```json
+{
+  "currency": "BTC",
+  "prices": [
+    {
+      "symbol": "BTCUSDT",
+      "price": "68000.00000000"
+    },
+    {
+      "symbol": "ETHBTC",
+      "price": "0.05200000"
+    }
+  ]
+}
+```
+
+Все пары Binance, где в symbol встречается переданный ticker.
+
+## OpenAPI
+
+OpenAPI спецификация доступна по:
+
+```text
+GET /openapi.json
+```
+
+Описаны endpoints, методы, параметры, ответы, схемы и авторизация.
+
+## Ошибки и логирование
+
+Кастомные ошибки содержат:
+
+```text
+statusCode
+timestamp
+requestId
+context
+```
+
+Логгер поддерживает уровни:
+
+```text
+error
+warn
+info
+debug
+trace
+```
+
+Пример лога:
+
+```text
+[2026-05-27T21:50:50.265Z] [INFO] [Evercodelab Internship] [requestId=44203f29-9736-4490-b718-4a5a7d280338] request started GET /price?currency=BTC
+```
 
 ## Запуск
 
@@ -78,7 +192,7 @@ npm start
 Выводом будет:
 
 ```text
-[2026-05-20T12:30:20.529Z] [INFO] [Evercodelab Internship] app started
+[2026-05-20T12:30:20.529Z] [INFO] [Evercodelab Internship] app started on port 3000
 ```
 
 ### Запуск scheduler
@@ -95,7 +209,6 @@ npm run scheduler
 ```
 
 Сообщение `background task done` выводится каждые 10 секунд.
-Остановить с помощью Ctrl + C. 
 
 ## Тестирование
 
@@ -117,9 +230,14 @@ npm run test:coverage
 
 ```text
 ошибок
-taskValidator
 logger
+validators
 scheduler
+middlewares
+currency routes
+price route
+services
+OpenAPI route
 ```
 
 ## Скрипты

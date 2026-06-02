@@ -17,19 +17,19 @@ class PriceService {
   }
 
   async getPricesByCurrency(currency, options = {}) {
-    const currencyFromDb = this.currencyRepository.findByTicker(currency);
+    const currencyFromDb = await this.currencyRepository.findByTicker(currency);
 
     if (!currencyFromDb) {
       throw new NotFoundError("Currency not found", {
         requestId: options.requestId,
         context: {
-          currency
-        }
+          currency,
+        },
       });
     }
 
     const prices = await this.binanceService.getAllPrices({
-      requestId: options.requestId
+      requestId: options.requestId,
     });
 
     const filteredPrices = prices.filter((price) => {
@@ -38,7 +38,7 @@ class PriceService {
 
     return {
       currency,
-      prices: filteredPrices
+      prices: filteredPrices,
     };
   }
 }

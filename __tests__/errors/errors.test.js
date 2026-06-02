@@ -5,6 +5,8 @@ const SchedulerError = require("../../src/errors/SchedulerError");
 const ForbiddenError = require("../../src/errors/ForbiddenError");
 const NotFoundError = require("../../src/errors/NotFoundError");
 const ConflictError = require("../../src/errors/ConflictError");
+const DatabaseError = require("../../src/errors/DatabaseError");
+const ExternalApiError = require("../../src/errors/ExternalApiError");
 
 describe("custom errors", () => {
   test("app error saves useful error info", () => {
@@ -124,4 +126,38 @@ describe("custom errors", () => {
     expect(error.context.ticker).toBe("BTC");
     expect(typeof error.timestamp).toBe("string");
   });
+
+  test("database error is used when database operation fails", () => {
+    const error = new DatabaseError("database failed", {
+      context: {
+        filename: "./data/app.sqlite",
+      },
+    });
+
+    expect(error).toBeInstanceOf(AppError);
+    expect(error).toBeInstanceOf(Error);
+    expect(error.name).toBe("DatabaseError");
+    expect(error.message).toBe("database failed");
+    expect(error.statusCode).toBe(500);
+    expect(error.context.filename).toBe("./data/app.sqlite");
+    expect(typeof error.timestamp).toBe("string");
+  });
+
+
+  test("external api error is used when external service fails", () => {
+    const error = new ExternalApiError("Binance request failed", {
+      context: {
+        service: "Binance",
+      },
+    });
+
+    expect(error).toBeInstanceOf(AppError);
+    expect(error).toBeInstanceOf(Error);
+    expect(error.name).toBe("ExternalApiError");
+    expect(error.message).toBe("Binance request failed");
+    expect(error.statusCode).toBe(502);
+    expect(error.context.service).toBe("Binance");
+    expect(typeof error.timestamp).toBe("string");
+  });
+  
 });

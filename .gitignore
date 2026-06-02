@@ -4,3 +4,7 @@ coverage/
 logs/
 *.log
 dist/
+data/
+*.sqlite
+*.sqlite3
+*.db

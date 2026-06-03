@@ -1,6 +1,6 @@
 const express = require("express");
+
 const authConfig = require("../config/authConfig");
-const CurrencyRepository = require("../repositories/currencyRepository");
 const createAuthMiddleware = require("./middlewares/authMiddleware");
 const createErrorMiddleware = require("./middlewares/errorMiddleware");
 const createRequestIdMiddleware = require("./middlewares/requestIdMiddleware");
@@ -15,20 +15,23 @@ const createPriceRoutes = require("./routes/priceRoutes");
 function createApp(dependencies = {}) {
   const app = express();
 
-  const currencyRepository =
-    dependencies.currencyRepository || new CurrencyRepository();
+  const { currencyRepository } = dependencies;
+
+  if (!currencyRepository) {
+    throw new Error("Currency repository is required");
+  }
 
   const binanceService =
     dependencies.binanceService ||
     new BinanceService({
-      logger: dependencies.logger
+      logger: dependencies.logger,
     });
 
   const priceService =
     dependencies.priceService ||
     new PriceService({
       currencyRepository,
-      binanceService
+      binanceService,
     });
 
   const apiToken = dependencies.apiToken || authConfig.apiToken;
@@ -36,23 +39,41 @@ function createApp(dependencies = {}) {
   const authMiddleware =
     dependencies.authMiddleware ||
     createAuthMiddleware({
-      apiToken
+      apiToken,
     });
 
   app.use(createRequestIdMiddleware());
-  app.use(createRequestLoggerMiddleware({ logger: dependencies.logger }));
+  app.use(
+    createRequestLoggerMiddleware({
+      logger: dependencies.logger,
+    })
+  );
   app.use(express.json());
 
   app.use(createStatusRoutes(dependencies));
   app.use(createOpenApiRoutes());
 
   app.use("/api", authMiddleware);
-  app.use("/api/currencies", createCurrencyRoutes({ currencyRepository }));
+  app.use(
+    "/api/currencies",
+    createCurrencyRoutes({
+      currencyRepository,
+    })
+  );
 
   app.use("/price", authMiddleware);
-  app.use("/price", createPriceRoutes({ priceService }));
+  app.use(
+    "/price",
+    createPriceRoutes({
+      priceService,
+    })
+  );
 
-  app.use(createErrorMiddleware({ logger: dependencies.logger }));
+  app.use(
+    createErrorMiddleware({
+      logger: dependencies.logger,
+    })
+  );
 
   return app;
 }

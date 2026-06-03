@@ -17,29 +17,37 @@ class PriceService {
   }
 
   async getPricesByCurrency(currency, options = {}) {
-    const currencyFromDb = await this.currencyRepository.findByTicker(currency);
+    const normalizedCurrency = this.normalizeCurrency(currency);
+
+    const currencyFromDb = await this.currencyRepository.findByTicker(
+      normalizedCurrency
+    );
 
     if (!currencyFromDb) {
       throw new NotFoundError("Currency not found", {
         requestId: options.requestId,
         context: {
-          currency,
-        },
+          currency: normalizedCurrency
+        }
       });
     }
 
     const prices = await this.binanceService.getAllPrices({
-      requestId: options.requestId,
+      requestId: options.requestId
     });
 
     const filteredPrices = prices.filter((price) => {
-      return price.symbol.includes(currency);
+      return price.symbol.includes(normalizedCurrency);
     });
 
     return {
-      currency,
-      prices: filteredPrices,
+      currency: normalizedCurrency,
+      prices: filteredPrices
     };
+  }
+
+  normalizeCurrency(currency) {
+    return String(currency).trim().toUpperCase();
   }
 }
 

@@ -1,14 +1,21 @@
-const DatabaseError = require("../errors/DatabaseError");
+const mapDatabaseError = require("../database/databaseErrorMapper");
+const runInTransaction = require("../database/transaction");
 
 class SQLiteCurrencyRepository {
   constructor(dependencies = {}) {
-    const { db } = dependencies;
+    const {
+      db,
+      transactionRunner = runInTransaction,
+      errorMapper = mapDatabaseError
+    } = dependencies;
 
     if (!db) {
       throw new Error("Database connection is required");
     }
 
     this.db = db;
+    this.transactionRunner = transactionRunner;
+    this.errorMapper = errorMapper;
   }
 
   async findAll() {
@@ -33,7 +40,7 @@ class SQLiteCurrencyRepository {
         return currency || null;
       },
       {
-        ticker: normalizedTicker,
+        ticker: normalizedTicker
       }
     );
   }
@@ -41,21 +48,26 @@ class SQLiteCurrencyRepository {
   async create(currency) {
     const newCurrency = {
       name: currency.name,
-      ticker: this.normalizeTicker(currency.ticker),
+      ticker: this.normalizeTicker(currency.ticker)
     };
 
     return this.execute(
       "create",
       async () => {
-        await this.db.run(
-          "INSERT INTO currencies (name, ticker) VALUES (?, ?)",
-          [newCurrency.name, newCurrency.ticker]
-        );
+        return this.transactionRunner(this.db, async () => {
+          await this.db.run(
+            "INSERT INTO currencies (name, ticker) VALUES (?, ?)",
+            [newCurrency.name, newCurrency.ticker]
+          );
 
-        return { ...newCurrency };
+          return this.db.get(
+            "SELECT name, ticker FROM currencies WHERE ticker = ?",
+            [newCurrency.ticker]
+          );
+        });
       },
       {
-        ticker: newCurrency.ticker,
+        ticker: newCurrency.ticker
       }
     );
   }
@@ -66,22 +78,24 @@ class SQLiteCurrencyRepository {
     return this.execute(
       "update",
       async () => {
-        const result = await this.db.run(
-          "UPDATE currencies SET name = ? WHERE ticker = ?",
-          [currency.name, normalizedTicker]
-        );
+        return this.transactionRunner(this.db, async () => {
+          const result = await this.db.run(
+            "UPDATE currencies SET name = ? WHERE ticker = ?",
+            [currency.name, normalizedTicker]
+          );
 
-        if (result.changes === 0) {
-          return null;
-        }
+          if (result.changes === 0) {
+            return null;
+          }
 
-        return {
-          name: currency.name,
-          ticker: normalizedTicker,
-        };
+          return this.db.get(
+            "SELECT name, ticker FROM currencies WHERE ticker = ?",
+            [normalizedTicker]
+          );
+        });
       },
       {
-        ticker: normalizedTicker,
+        ticker: normalizedTicker
       }
     );
   }
@@ -92,15 +106,17 @@ class SQLiteCurrencyRepository {
     return this.execute(
       "delete",
       async () => {
-        const result = await this.db.run(
-          "DELETE FROM currencies WHERE ticker = ?",
-          [normalizedTicker]
-        );
+        return this.transactionRunner(this.db, async () => {
+          const result = await this.db.run(
+            "DELETE FROM currencies WHERE ticker = ?",
+            [normalizedTicker]
+          );
 
-        return result.changes > 0;
+          return result.changes > 0;
+        });
       },
       {
-        ticker: normalizedTicker,
+        ticker: normalizedTicker
       }
     );
   }
@@ -119,7 +135,7 @@ class SQLiteCurrencyRepository {
         return Boolean(result);
       },
       {
-        ticker: normalizedTicker,
+        ticker: normalizedTicker
       }
     );
   }
@@ -132,12 +148,9 @@ class SQLiteCurrencyRepository {
     try {
       return await action();
     } catch (error) {
-      throw new DatabaseError("Database operation failed", {
-        context: {
-          operation,
-          ...context,
-          originalMessage: error.message,
-        },
+      throw this.errorMapper(error, {
+        operation,
+        ...context
       });
     }
   }

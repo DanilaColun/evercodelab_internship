@@ -1,5 +1,6 @@
 const SQLiteCurrencyRepository = require("../../src/repositories/sqliteCurrencyRepository");
 const createTestDatabase = require("../../testUtils/createTestDatabase");
+const ConflictError = require("../../src/errors/ConflictError");
 
 describe("SQLiteCurrencyRepository", () => {
   let testDatabase;
@@ -145,4 +146,45 @@ describe("SQLiteCurrencyRepository", () => {
       ticker: "BTC",
     });
   });
+
+    test("throws ConflictError when creating duplicate currency", async () => {
+    await repository.create({
+      name: "Bitcoin",
+      ticker: "BTC"
+    });
+
+    await expect(
+      repository.create({
+        name: "Bitcoin",
+        ticker: "BTC"
+      })
+    ).rejects.toBeInstanceOf(ConflictError);
+  });
+
+  test("uses transaction runner for write operations", async () => {
+    const transactionRunner = jest.fn((db, action) => {
+      return action();
+    });
+
+    const repositoryWithTransactionSpy = new SQLiteCurrencyRepository({
+      db: testDatabase.db,
+      transactionRunner
+    });
+
+    await repositoryWithTransactionSpy.create({
+      name: "Bitcoin",
+      ticker: "BTC"
+    });
+
+    await repositoryWithTransactionSpy.update("BTC", {
+      name: "Bitcoin Updated",
+      ticker: "BTC"
+    });
+
+    await repositoryWithTransactionSpy.delete("BTC");
+
+    expect(transactionRunner).toHaveBeenCalledTimes(3);
+  });
+
+
 });

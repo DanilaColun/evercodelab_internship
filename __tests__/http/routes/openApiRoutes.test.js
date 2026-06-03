@@ -1,9 +1,34 @@
 const request = require("supertest");
-const createApp = require("../../../src/http/createApp");
+
+const createTestApp = require("../../../testUtils/createTestApp");
 
 describe("openApiRoutes", () => {
+  let testDatabase;
+
+  beforeEach(() => {
+    jest.spyOn(console, "log").mockImplementation(() => {});
+    jest.spyOn(console, "error").mockImplementation(() => {});
+  });
+
+  afterEach(async () => {
+    if (testDatabase) {
+      await testDatabase.close();
+      testDatabase = null;
+    }
+
+    jest.restoreAllMocks();
+  });
+
+  async function buildApp() {
+    const testApp = await createTestApp();
+
+    testDatabase = testApp.testDatabase;
+
+    return testApp.app;
+  }
+
   test("returns OpenAPI specification", async () => {
-    const app = createApp();
+    const app = await buildApp();
 
     const response = await request(app).get("/openapi.json").expect(200);
 
@@ -15,6 +40,7 @@ describe("openApiRoutes", () => {
     expect(response.body.paths["/api/currencies"]).toBeDefined();
     expect(response.body.paths["/api/currencies/{ticker}"]).toBeDefined();
     expect(response.body.paths["/price"]).toBeDefined();
+
     expect(response.body.components.schemas.Price).toBeDefined();
     expect(response.body.components.schemas.PriceResponse).toBeDefined();
     expect(response.body.components.responses.ExternalApiError).toBeDefined();
@@ -24,7 +50,7 @@ describe("openApiRoutes", () => {
   });
 
   test("does not require token for OpenAPI file", async () => {
-    const app = createApp();
+    const app = await buildApp();
 
     await request(app).get("/openapi.json").expect(200);
   });

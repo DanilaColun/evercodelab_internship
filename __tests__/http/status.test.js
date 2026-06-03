@@ -1,13 +1,22 @@
 const request = require("supertest");
-const createApp = require("../../src/http/createApp");
 
-describe("GET /status", () => {
+const createTestApp = require("../../testUtils/createTestApp");
+
+describe("status route", () => {
+  let testDatabase;
+
+  afterEach(async () => {
+    if (testDatabase) {
+      await testDatabase.close();
+      testDatabase = null;
+    }
+  });
+
   test("returns ok", async () => {
-    const app = createApp();
+    const testApp = await createTestApp();
+    const app = testApp.app;
+    testDatabase = testApp.testDatabase;
 
-    await request(app)
-      .get("/status")
-      .expect(200)
-      .expect("ok");
+    await request(app).get("/status").expect(200).expect("ok");
   });
 });

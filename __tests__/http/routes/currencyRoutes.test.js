@@ -1,14 +1,20 @@
 const request = require("supertest");
-const createApp = require("../../../src/http/createApp");
-const CurrencyRepository = require("../../../src/repositories/currencyRepository");
 
-const validToken = "a9f4c2d8e13b7a0c91f6e84d22b0c5713e69f10ab8d4567c3f92a4410dc88b5e";
+const createTestApp = require("../../../testUtils/createTestApp");
 
-function createTestApp() {
-  return createApp({
-    apiToken: validToken,
-    currencyRepository: new CurrencyRepository()
+const validToken =
+  "a9f4c2d8e13b7a0c91f6e84d22b0c5713e69f10ab8d4567c3f92a4410dc88b5e";
+
+let testDatabase;
+
+async function buildApp() {
+  const testApp = await createTestApp({
+    apiToken: validToken
   });
+
+  testDatabase = testApp.testDatabase;
+
+  return testApp.app;
 }
 
 function withAuth(requestBuilder) {
@@ -16,8 +22,22 @@ function withAuth(requestBuilder) {
 }
 
 describe("currency routes", () => {
+  beforeEach(() => {
+    jest.spyOn(console, "log").mockImplementation(() => {});
+    jest.spyOn(console, "error").mockImplementation(() => {});
+  });
+
+  afterEach(async () => {
+    if (testDatabase) {
+      await testDatabase.close();
+      testDatabase = null;
+    }
+
+    jest.restoreAllMocks();
+  });
+
   test("blocks request without token", async () => {
-    const app = createTestApp();
+    const app = await buildApp();
 
     const response = await request(app).get("/api/currencies").expect(403);
 
@@ -25,13 +45,13 @@ describe("currency routes", () => {
   });
 
   test("returns empty currency list", async () => {
-    const app = createTestApp();
+    const app = await buildApp();
 
     await withAuth(request(app).get("/api/currencies")).expect(200).expect([]);
   });
 
   test("creates currency", async () => {
-    const app = createTestApp();
+    const app = await buildApp();
 
     await withAuth(request(app).post("/api/currencies"))
       .send({
@@ -46,7 +66,7 @@ describe("currency routes", () => {
   });
 
   test("does not create currency with empty data", async () => {
-    const app = createTestApp();
+    const app = await buildApp();
 
     const response = await withAuth(request(app).post("/api/currencies"))
       .send({})
@@ -60,7 +80,7 @@ describe("currency routes", () => {
   });
 
   test("does not create duplicate currency", async () => {
-    const app = createTestApp();
+    const app = await buildApp();
 
     await withAuth(request(app).post("/api/currencies")).send({
       name: "Bitcoin",
@@ -78,7 +98,7 @@ describe("currency routes", () => {
   });
 
   test("returns currency by ticker", async () => {
-    const app = createTestApp();
+    const app = await buildApp();
 
     await withAuth(request(app).post("/api/currencies")).send({
       name: "Bitcoin",
@@ -94,7 +114,7 @@ describe("currency routes", () => {
   });
 
   test("returns 404 if currency does not exist", async () => {
-    const app = createTestApp();
+    const app = await buildApp();
 
     const response = await withAuth(
       request(app).get("/api/currencies/BTC")
@@ -104,7 +124,7 @@ describe("currency routes", () => {
   });
 
   test("updates currency", async () => {
-    const app = createTestApp();
+    const app = await buildApp();
 
     await withAuth(request(app).post("/api/currencies")).send({
       name: "Bitcoin",
@@ -124,7 +144,7 @@ describe("currency routes", () => {
   });
 
   test("does not update if ticker does not match URL", async () => {
-    const app = createTestApp();
+    const app = await buildApp();
 
     const response = await withAuth(request(app).put("/api/currencies/BTC"))
       .send({
@@ -137,7 +157,7 @@ describe("currency routes", () => {
   });
 
   test("deletes currency", async () => {
-    const app = createTestApp();
+    const app = await buildApp();
 
     await withAuth(request(app).post("/api/currencies")).send({
       name: "Bitcoin",
@@ -151,5 +171,29 @@ describe("currency routes", () => {
     ).expect(404);
 
     expect(response.body.error).toBe("Currency not found");
+  });
+
+  test("does not use ticker parameter as SQL code", async () => {
+    const app = await buildApp();
+
+    await withAuth(request(app).post("/api/currencies")).send({
+      name: "Bitcoin",
+      ticker: "BTC"
+    });
+
+    const maliciousTicker = encodeURIComponent("BTC' OR '1'='1");
+
+    const response = await withAuth(
+      request(app).get(`/api/currencies/${maliciousTicker}`)
+    ).expect(404);
+
+    expect(response.body.error).toBe("Currency not found");
+
+    await withAuth(request(app).get("/api/currencies/BTC"))
+      .expect(200)
+      .expect({
+        name: "Bitcoin",
+        ticker: "BTC"
+      });
   });
 });

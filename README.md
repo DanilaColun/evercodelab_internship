@@ -10,7 +10,7 @@
 2. маршрут `/status` для проверки работы сервера
 3. авторизация через Bearer token из `.env`
 4. CRUD API для `currency`
-5. хранение `currency` в памяти приложения (временно)
+5. хранение `currency` в SQLite базе данных
 6. endpoint `/price` для получения курсов из Binance
 7. retry и timeout при запросе к Binance
 8. OpenAPI описание endpoint
@@ -20,6 +20,9 @@
 12. кастомные ошибки для удобной отладки
 13. scheduler для управления периодическими задачами (локально)
 14. автотесты на Jest
+15. Repository Pattern для работы с данными
+16. транзакции для write операций в SQLite
+
 
 ## Структура проекта
 
@@ -29,6 +32,9 @@ src/config
 
 src/clients
 HTTP клиент для внешних API
+
+src/database
+подключение SQLite, схема базы данных, транзакции и инициализация базы
 
 src/docs
 OpenAPI спецификации
@@ -53,6 +59,9 @@ src/services
 
 src/validators
 валидация входных данных 
+
+testUtils
+helper функции для тестовой SQLite базы и тестового приложения
 ```
 
 ## Основные endpoints
@@ -107,8 +116,9 @@ Authorization: Bearer <API_TOKEN>
 }
 ```
 
-Данные хранятся в памяти app временно. 
-После перезапуска сервера список очищается.
+Данные хранятся в SQLite базе данных.
+
+После перезапуска сервера список `currency` сохраняется.
 
 ## Price API
 
@@ -137,6 +147,26 @@ GET /price?currency=:ticker
 ```
 
 Все пары Binance, где в symbol встречается переданный ticker.
+
+Перед запросом к Binance приложение проверяет, что переданный `currency` есть в базе данных.
+
+## Работа с базой данных
+
+В проекте используется SQLite.
+
+По умолчанию база создаётся по пути:
+
+```text
+./data/app.sqlite
+```
+
+Файл базы данных не хранится в репозитории.
+
+Для создания базы и таблиц используется команда:
+
+```bash
+npm run db:init
+```
 
 ## OpenAPI
 
@@ -194,6 +224,11 @@ npm start
 ```text
 [2026-05-20T12:30:20.529Z] [INFO] [Evercodelab Internship] app started on port 3000
 ```
+### Инициализация базы данных
+
+```bash
+npm run db:init
+```
 
 ### Запуск scheduler
 
@@ -234,11 +269,14 @@ logger
 validators
 scheduler
 middlewares
+database
 currency routes
 price route
 services
 OpenAPI route
 ```
+
+для тестов используется временная база данных SQLite. 
 
 ## Скрипты
 
@@ -246,6 +284,7 @@ OpenAPI route
 {
   "start": "node src/index.js",
   "scheduler": "node src/scheduler.js",
+  "db:init": "node src/database/initDatabase.js",
   "test": "jest",
   "test:coverage": "jest --coverage"
 }

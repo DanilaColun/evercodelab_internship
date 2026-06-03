@@ -5,11 +5,18 @@ const createTestApp = require("../../testUtils/createTestApp");
 describe("status route", () => {
   let testDatabase;
 
+  beforeEach(() => {
+    jest.spyOn(console, "log").mockImplementation(() => {});
+    jest.spyOn(console, "error").mockImplementation(() => {});
+  });
+
   afterEach(async () => {
     if (testDatabase) {
       await testDatabase.close();
       testDatabase = null;
     }
+
+    jest.restoreAllMocks();
   });
 
   test("returns ok", async () => {

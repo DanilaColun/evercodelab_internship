@@ -52,7 +52,7 @@ src/logger
 кастомный logger
 
 src/repositories
-хранение данных в памяти (временно)
+слой доступа к данным через Repository Pattern
 
 src/services
 бизнес логика приложения

@@ -1,37 +1,47 @@
 const express = require("express");
 
 const authConfig = require("../config/authConfig");
+
+const ConfigError = require("../errors/ConfigError");
+
 const createAuthMiddleware = require("./middlewares/authMiddleware");
 const createErrorMiddleware = require("./middlewares/errorMiddleware");
 const createRequestIdMiddleware = require("./middlewares/requestIdMiddleware");
 const createRequestLoggerMiddleware = require("./middlewares/requestLoggerMiddleware");
+
 const createCurrencyRoutes = require("./routes/currencyRoutes");
 const createOpenApiRoutes = require("./routes/openApiRoutes");
-const createStatusRoutes = require("./routes/statusRoutes");
-const BinanceService = require("../services/binanceService");
-const PriceService = require("../services/priceService");
 const createPriceRoutes = require("./routes/priceRoutes");
+const createStatusRoutes = require("./routes/statusRoutes");
+
+const PriceService = require("../services/priceService");
 
 function createApp(dependencies = {}) {
   const app = express();
 
-  const { currencyRepository } = dependencies;
+  const { currencyRepository, priceRepository } = dependencies;
 
   if (!currencyRepository) {
-    throw new Error("Currency repository is required");
+    throw new ConfigError("Currency repository is required", {
+      context: {
+        dependency: "currencyRepository",
+      },
+    });
   }
 
-  const binanceService =
-    dependencies.binanceService ||
-    new BinanceService({
-      logger: dependencies.logger,
+  if (!priceRepository) {
+    throw new ConfigError("Price repository is required", {
+      context: {
+        dependency: "priceRepository",
+      },
     });
+  }
 
   const priceService =
     dependencies.priceService ||
     new PriceService({
       currencyRepository,
-      binanceService,
+      priceRepository,
     });
 
   const apiToken = dependencies.apiToken || authConfig.apiToken;
@@ -43,17 +53,20 @@ function createApp(dependencies = {}) {
     });
 
   app.use(createRequestIdMiddleware());
+
   app.use(
     createRequestLoggerMiddleware({
       logger: dependencies.logger,
     })
   );
+
   app.use(express.json());
 
   app.use(createStatusRoutes(dependencies));
   app.use(createOpenApiRoutes());
 
   app.use("/api", authMiddleware);
+
   app.use(
     "/api/currencies",
     createCurrencyRoutes({
@@ -62,6 +75,7 @@ function createApp(dependencies = {}) {
   );
 
   app.use("/price", authMiddleware);
+
   app.use(
     "/price",
     createPriceRoutes({

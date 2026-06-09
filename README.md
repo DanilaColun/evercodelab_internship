@@ -11,7 +11,7 @@
 3. авторизация через Bearer token из `.env`
 4. CRUD API для `currency`
 5. хранение `currency` в SQLite базе данных
-6. endpoint `/price` для получения курсов из Binance
+6. endpoint `/price` для получения сохранённых курсов из SQLite, где курсы берутся автоматически раз в минуту с помощью scheduler
 7. retry и timeout при запросе к Binance
 8. OpenAPI описание endpoint
 9. структура проекта по принципу разделения ответственности
@@ -128,6 +128,8 @@ Endpoint:
 GET /price?currency=:ticker
 ```
 
+Возвращает сохраненные курсы из SQLite бд, не обращается напрямую к Binance, а курсы обновляются фоновой задачей раз в 1 минуту. Scheduler обращается к Binance API и сохраняет в бд.
+
 Пример ответа:
 
 ```json
@@ -148,7 +150,9 @@ GET /price?currency=:ticker
 
 Все пары Binance, где в symbol встречается переданный ticker.
 
-Перед запросом к Binance приложение проверяет, что переданный `currency` есть в базе данных.
+Перед чтением курсов приложение проверяет, что переданный `currency` есть в базе данных.
+
+Если курсы ещё не были обновлены scheduler, endpoint вернёт пустой массив `prices`.
 
 ## Работа с базой данных
 
@@ -161,6 +165,8 @@ GET /price?currency=:ticker
 ```
 
 Файл базы данных не хранится в репозитории.
+
+В базе хранятся `currency` и сохранённые курсы для `/price`, а также информация когда список был обновлен в последний раз в рамках scheduler. 
 
 Для создания базы и таблиц используется команда:
 
@@ -222,8 +228,13 @@ npm start
 Выводом будет:
 
 ```text
+[2026-05-20T12:30:20.529Z] [INFO] [Evercodelab Internship] [requestId=scheduler-task] scheduler started
+[2026-05-20T12:30:20.529Z] [INFO] [Evercodelab Internship] [requestId=scheduler-task] price update started
 [2026-05-20T12:30:20.529Z] [INFO] [Evercodelab Internship] app started on port 3000
 ```
+
+(Вместе со стартом запускается и фоновое обновление price раз в 1 минуту)
+
 ### Инициализация базы данных
 
 ```bash
@@ -236,14 +247,17 @@ npm run db:init
 npm run scheduler
 ```
 
+(запускает только scheduler без старта Express сервера)
+
 Выводом будет:
 
 ```text
 [2026-05-20T12:30:20.529Z] [INFO] [Evercodelab Internship] [requestId=scheduler-task] scheduler started
-[2026-05-20T12:30:30.529Z] [INFO] [Evercodelab Internship] [requestId=scheduler-task] background task done
+[2026-05-20T12:30:20.529Z] [INFO] [Evercodelab Internship] [requestId=scheduler-task] price update started
+[2026-05-20T12:30:26.529Z] [INFO] [Evercodelab Internship] [requestId=scheduler-task] price update done: currencies=1, prices=531, durationMs=6000
 ```
 
-Сообщение `background task done` выводится каждые 10 секунд.
+Scheduler обновляет курсы раз в минуту.
 
 ## Тестирование
 

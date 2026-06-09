@@ -2,9 +2,18 @@ const appConfig = require("./config/appConfig");
 const databaseConfig = require("./database/databaseConfig");
 const initDatabase = require("./database/initDatabase");
 const openDatabase = require("./database/databaseConnection");
+
 const createApp = require("./http/createApp");
+
 const Logger = require("./logger/logger");
+
 const SQLiteCurrencyRepository = require("./repositories/sqliteCurrencyRepository");
+const SQLitePriceRepository = require("./repositories/sqlitePriceRepository");
+
+const BinanceService = require("./services/binanceService");
+const PriceUpdateService = require("./services/priceUpdateService");
+
+const startScheduler = require("./scheduler/startScheduler");
 
 const logger = new Logger(appConfig.appName, {
   level: appConfig.logLevel,
@@ -12,8 +21,23 @@ const logger = new Logger(appConfig.appName, {
 
 let isShuttingDown = false;
 
+function closeServer(server) {
+  return new Promise((resolve, reject) => {
+    server.close((error) => {
+      if (error) {
+        reject(error);
+        return;
+      }
+
+      resolve();
+    });
+  });
+}
+
 async function startServer() {
   let db;
+  let server;
+  let scheduler;
 
   try {
     await initDatabase({
@@ -28,12 +52,33 @@ async function startServer() {
       db,
     });
 
+    const priceRepository = new SQLitePriceRepository({
+      db,
+    });
+
+    const binanceService = new BinanceService({
+      logger,
+    });
+
+    const priceUpdateService = new PriceUpdateService({
+      currencyRepository,
+      priceRepository,
+      binanceService,
+      logger,
+    });
+
     const app = createApp({
       logger,
       currencyRepository,
+      priceRepository,
     });
 
-    const server = app.listen(appConfig.port, () => {
+    scheduler = startScheduler({
+      logger,
+      priceUpdateService,
+    });
+
+    server = app.listen(appConfig.port, () => {
       logger.info(`app started on port ${appConfig.port}`);
     });
 
@@ -46,22 +91,41 @@ async function startServer() {
 
       logger.info(`app shutdown started by ${signal}`);
 
-      server.close(async () => {
-        try {
+      try {
+        if (scheduler) {
+          await scheduler.stop();
+          logger.info("scheduler stopped");
+        }
+
+        if (server) {
+          await closeServer(server);
+          logger.info("http server closed");
+        }
+
+        if (db) {
           await db.close();
           logger.info("database connection closed");
-          process.exit(0);
-        } catch (error) {
-          logger.error(`database connection close failed: ${error.message}`);
-          process.exit(1);
         }
-      });
+
+        process.exit(0);
+      } catch (error) {
+        logger.error(`app shutdown failed: ${error.message}`);
+        process.exit(1);
+      }
     }
 
     process.on("SIGINT", () => shutdown("SIGINT"));
     process.on("SIGTERM", () => shutdown("SIGTERM"));
   } catch (error) {
     logger.error(`app failed to start: ${error.message}`);
+
+    if (scheduler) {
+      await scheduler.stop().catch(() => {});
+    }
+
+    if (server) {
+      await closeServer(server).catch(() => {});
+    }
 
     if (db) {
       await db.close().catch(() => {});

@@ -1,19 +1,28 @@
+const ConfigError = require("../errors/ConfigError");
 const NotFoundError = require("../errors/NotFoundError");
 
 class PriceService {
   constructor(dependencies = {}) {
-    const { currencyRepository, binanceService } = dependencies;
+    const { currencyRepository, priceRepository } = dependencies;
 
     if (!currencyRepository) {
-      throw new Error("Currency repository is required");
+      throw new ConfigError("Currency repository is required", {
+        context: {
+          dependency: "currencyRepository",
+        },
+      });
     }
 
-    if (!binanceService) {
-      throw new Error("Binance service is required");
+    if (!priceRepository) {
+      throw new ConfigError("Price repository is required", {
+        context: {
+          dependency: "priceRepository",
+        },
+      });
     }
 
     this.currencyRepository = currencyRepository;
-    this.binanceService = binanceService;
+    this.priceRepository = priceRepository;
   }
 
   async getPricesByCurrency(currency, options = {}) {
@@ -27,22 +36,18 @@ class PriceService {
       throw new NotFoundError("Currency not found", {
         requestId: options.requestId,
         context: {
-          currency: normalizedCurrency
-        }
+          currency: normalizedCurrency,
+        },
       });
     }
 
-    const prices = await this.binanceService.getAllPrices({
-      requestId: options.requestId
-    });
-
-    const filteredPrices = prices.filter((price) => {
-      return price.symbol.includes(normalizedCurrency);
-    });
+    const prices = await this.priceRepository.findByCurrencyTicker(
+      normalizedCurrency
+    );
 
     return {
       currency: normalizedCurrency,
-      prices: filteredPrices
+      prices,
     };
   }
 

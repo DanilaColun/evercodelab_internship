@@ -5,10 +5,40 @@ function scheduleTask(name, interval, task, options = {}) {
   validateTaskOptions(name, interval, task);
 
   const onError = typeof options.onError === "function" ? options.onError : null;
+  const onSkip = typeof options.onSkip === "function" ? options.onSkip : null;
+  const runImmediately = options.runImmediately === true;
 
-  const intervalId = setInterval(async function () {
+  let isStopped = false;
+  let runningTask = null;
+
+  async function runOnce() {
+    if (isStopped) {
+      return null;
+    }
+
+    if (runningTask) {
+      if (onSkip) {
+        onSkip({
+          name,
+          reason: "task is already running",
+        });
+      }
+
+      return null;
+    }
+
+    runningTask = executeTask();
+
     try {
-      await task();
+      return await runningTask;
+    } finally {
+      runningTask = null;
+    }
+  }
+
+  async function executeTask() {
+    try {
+      return await task();
     } catch (error) {
       const originalErrorMessage =
         error instanceof Error ? error.message : String(error);
@@ -16,17 +46,41 @@ function scheduleTask(name, interval, task, options = {}) {
       const schedulerError = new SchedulerError("Scheduled task failed", {
         context: {
           taskName: name,
-          originalErrorMessage
-        }
+          originalErrorMessage,
+        },
       });
 
       if (onError) {
         onError(schedulerError);
       }
+
+      return null;
     }
+  }
+
+  const intervalId = setInterval(() => {
+    runOnce();
   }, interval);
 
-  return intervalId;
+  if (runImmediately) {
+    runOnce();
+  }
+
+  async function stop() {
+    isStopped = true;
+    clearInterval(intervalId);
+
+    if (runningTask) {
+      await runningTask;
+    }
+  }
+
+  return {
+    name,
+    intervalId,
+    runOnce,
+    stop,
+  };
 }
 
 module.exports = scheduleTask;

@@ -1,42 +1,31 @@
 const request = require("supertest");
-
 const createTestApp = require("../../../testUtils/createTestApp");
 
-const validToken = "a9f4c2d8e13b7a0c91f6e84d22b0c5713e69f10ab8d4567c3f92a4410dc88b5e";
+const validToken =
+  "a9f4c2d8e13b7a0c91f6e84d22b0c5713e69f10ab8d4567c3f92a4410dc88b5e";
 
 async function buildTestApp() {
-  const binanceService = {
-    getAllPrices: jest.fn().mockResolvedValue([
-      {
-        symbol: "BTCUSDT",
-        price: "68000.00000000"
-      },
-      {
-        symbol: "ETHBTC",
-        price: "0.05200000"
-      },
-      {
-        symbol: "ETHUSDT",
-        price: "3500.00000000"
-      }
-    ])
-  };
-
   const testApp = await createTestApp({
     apiToken: validToken,
-    binanceService
   });
 
   await testApp.currencyRepository.create({
     name: "Bitcoin",
-    ticker: "BTC"
+    ticker: "BTC",
   });
 
-  return {
-    app: testApp.app,
-    testDatabase: testApp.testDatabase,
-    binanceService
-  };
+  await testApp.priceRepository.replaceForCurrencyTicker("BTC", [
+    {
+      symbol: "BTCUSDT",
+      price: "68000.00000000",
+    },
+    {
+      symbol: "ETHBTC",
+      price: "0.05200000",
+    },
+  ]);
+
+  return testApp;
 }
 
 function withAuth(requestBuilder) {
@@ -49,6 +38,7 @@ describe("price routes", () => {
   beforeEach(() => {
     jest.spyOn(console, "log").mockImplementation(() => {});
     jest.spyOn(console, "error").mockImplementation(() => {});
+    jest.spyOn(console, "warn").mockImplementation(() => {});
   });
 
   afterEach(async () => {
@@ -62,55 +52,53 @@ describe("price routes", () => {
 
   test("blocks request without token", async () => {
     const testApp = await buildTestApp();
-    const app = testApp.app;
     testDatabase = testApp.testDatabase;
 
-    const response = await request(app).get("/price?currency=BTC").expect(403);
+    const response = await request(testApp.app)
+      .get("/price?currency=BTC")
+      .expect(403);
 
     expect(response.body.error).toBe("Forbidden");
   });
 
-  test("returns prices for currency", async () => {
+  test("returns cached prices for currency", async () => {
     const testApp = await buildTestApp();
-    const app = testApp.app;
     testDatabase = testApp.testDatabase;
 
-    await withAuth(request(app).get("/price?currency=BTC"))
+    await withAuth(request(testApp.app).get("/price?currency=BTC"))
       .expect(200)
       .expect({
         currency: "BTC",
         prices: [
           {
             symbol: "BTCUSDT",
-            price: "68000.00000000"
+            price: "68000.00000000",
           },
           {
             symbol: "ETHBTC",
-            price: "0.05200000"
-          }
-        ]
+            price: "0.05200000",
+          },
+        ],
       });
-
-    expect(testApp.binanceService.getAllPrices).toHaveBeenCalledTimes(1);
   });
 
   test("returns 400 if currency query is missing", async () => {
     const testApp = await buildTestApp();
-    const app = testApp.app;
     testDatabase = testApp.testDatabase;
 
-    const response = await withAuth(request(app).get("/price")).expect(400);
+    const response = await withAuth(request(testApp.app).get("/price")).expect(
+      400
+    );
 
     expect(response.body.error).toBe("Currency is required");
   });
 
   test("returns 404 if currency is not in database", async () => {
     const testApp = await buildTestApp();
-    const app = testApp.app;
     testDatabase = testApp.testDatabase;
 
     const response = await withAuth(
-      request(app).get("/price?currency=ETH")
+      request(testApp.app).get("/price?currency=ETH")
     ).expect(404);
 
     expect(response.body.error).toBe("Currency not found");

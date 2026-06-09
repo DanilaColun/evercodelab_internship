@@ -256,7 +256,8 @@ const openApiSpec = {
     },
     "/price": {
       get: {
-        summary: "Get prices by currency",
+        summary: "Get cached prices by currency",
+        description: "Returns prices from SQLite. Prices are updated by scheduler.",
         security: [
           {
             bearerAuth: []
@@ -305,9 +306,6 @@ const openApiSpec = {
           },
           404: {
             $ref: "#/components/responses/NotFound"
-          },
-          502: {
-            $ref: "#/components/responses/ExternalApiError"
           }
         }
       }
